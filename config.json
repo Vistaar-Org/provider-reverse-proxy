@@ -1,0 +1,12 @@
+{
+  "targets": [
+    {
+      "path": "upcar",
+      "url": "https://upcar.up.gov.in/en/page/advisory"
+    },
+    {
+      "path": "ouat",
+      "url": "https://ouat.ac.in/quick-links/agro-advisory-services/"
+    }
+  ]
+}
