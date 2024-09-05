@@ -15,36 +15,39 @@ try {
   process.exit(1);
 }
 
-// Route to display the current configuration
-app.get('/', (req, res) => {
-  res.json(config);
-});
+// Route to display the current configuration (for development only)
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/', (req, res) => {
+    res.json(config);
+  });
+}
 
 // Create a proxy for each target in the configuration
 config.targets.forEach(target => {
   console.log(`Setting up proxy for ${target.path} to ${target.url}`);
-  app.use(target.path, createProxyMiddleware({
+  app.use(`/${target.path}`, createProxyMiddleware({
     target: target.url,
     changeOrigin: true,
-    headers: target.headers,
+    headers: target.headers || {}, // Check if headers exist
     pathRewrite: (path, req) => {
-      console.log(`Rewriting path: ${path} -> ${path.replace(target.path, '/')}`);
-      return path.replace(target.path, '/');
+      const newPath = path.replace(new RegExp(`^${target.path}`), '/');
+      console.log(`Rewriting path: ${path} -> ${newPath}`);
+      return newPath;
     },
     onProxyReq: (proxyReq, req, res) => {
       console.log(`Proxying request to: ${target.url}${req.url}`);
     },
     onError: (err, req, res) => {
-      console.error('Proxy error:', err);
-      res.status(500).send('Proxy error');
+      console.error(`Proxy error for ${req.url}:`, err);
+      res.status(500).json({ error: 'Proxy error', message: err.message });
     }
   }));
 });
 
-// Catch-all route for debugging
+// Catch-all route for unhandled requests
 app.use((req, res) => {
   console.log(`Unhandled request: ${req.method} ${req.url}`);
-  res.status(404).send('Not Found');
+  res.status(404).json({ message: `The path ${req.url} is not proxied or handled.` });
 });
 
 // Start the server
