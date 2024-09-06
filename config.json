@@ -2,19 +2,23 @@
   "targets": [
     {
       "path": "upcar",
+      "proxyMethod": "direct",
       "url": "https://upcar.up.gov.in"
     },
     {
       "path": "ouat",
+      "proxyMethod": "newRequest",
       "url": "https://ouat.ac.in/quick-links"
     },
     {
       "path": "imd",
+      "proxyMethod": "newRequest",
       "url": "https://city.imd.gov.in/api/"      
     },
     {
       "path": "test",
-      "url": "https://jsonplaceholder.typicode.com/"
+      "proxyMethod": "direct",
+      "url": "https://jsonplaceholder.typicode.com"
     }
   ]
 }
