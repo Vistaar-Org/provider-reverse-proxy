@@ -1,5 +1,5 @@
 const express = require('express');
-const { createProxyMiddleware } = require('http-proxy-middleware');
+const axios = require('axios');
 const fs = require('fs');
 
 const app = express();
@@ -22,45 +22,70 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
-// Create a proxy for each target in the configuration
+// Create a middleware for each target in the configuration
 config.targets.forEach(target => {
-  console.log(`Setting up proxy for ${target.path} to ${target.url}`);
-  app.use(`/${target.path}`, createProxyMiddleware({
-    target: target.url,
-    changeOrigin: true,
-    headers: target.headers || {}, // Check if headers exist
-    pathRewrite: (path, req) => {
-      const newPath = path.replace(new RegExp(`^${target.path}`), '/');
-      console.log(`Rewriting path: ${path} -> ${newPath}`);
-      return newPath;
-    },
-    onProxyReq: (proxyReq, req, res) => {
-      // Remove the x-forwarded-for header to prevent passing the original client IP
-      proxyReq.removeHeader('x-forwarded-for');
-      
-      // Remove other headers that might reveal the original IP
-      proxyReq.removeHeader('x-real-ip');
-      proxyReq.removeHeader('forwarded');
-      req.removeHeader('x-forwarded-for');
-      req.removeHeader('x-real-ip');
-      req.removeHeader('forwarded');
-      
-      console.log(`Proxying request to: ${target.url}${req.url}`);
-    },
-    onError: (err, req, res) => {
-      console.error(`Proxy error for ${req.url}:`, err);
-      res.status(500).json({ error: 'Proxy error', message: err.message });
+  console.log(`Setting up middleware for ${target.path} to ${target.url}`);
+  app.use(`/${target.path}`, async (req, res) => {
+    const newPath = req.url.replace(new RegExp(`^/${target.path}`), '/');
+    const fullUrl = `${target.url}${newPath}`;
+
+    console.log(`Sending request to: ${fullUrl}`);
+
+    try {
+      const axiosConfig = {
+        method: req.method,
+        url: fullUrl,
+        headers: {
+          ...req.headers,
+          ...target.headers,
+          host: new URL(target.url).host,  // Set the correct host header
+        },
+        data: req.body,
+        responseType: 'arraybuffer',  // To handle all types of responses
+      };
+
+      // Remove headers that might reveal the original client
+      delete axiosConfig.headers['x-forwarded-for'];
+      delete axiosConfig.headers['x-real-ip'];
+      delete axiosConfig.headers['forwarded'];
+
+      const response = await axios(axiosConfig);
+
+      // Set the status code
+      res.status(response.status);
+
+      // Set the headers
+      Object.entries(response.headers).forEach(([key, value]) => {
+        res.setHeader(key, value);
+      });
+
+      // Send the response body
+      res.send(response.data);
+
+    } catch (error) {
+      console.error(`Error for ${req.url}:`, error);
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        res.status(error.response.status).send(error.response.data);
+      } else if (error.request) {
+        // The request was made but no response was received
+        res.status(504).json({ error: 'Gateway Timeout', message: 'No response received from the target server' });
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        res.status(500).json({ error: 'Internal Server Error', message: error.message });
+      }
     }
-  }));
+  });
 });
 
 // Catch-all route for unhandled requests
 app.use((req, res) => {
   console.log(`Unhandled request: ${req.method} ${req.url}`);
-  res.status(404).json({ message: `The path ${req.url} is not proxied or handled.` });
+  res.status(404).json({ message: `The path ${req.url} is not handled.` });
 });
 
 // Start the server
 app.listen(PORT, () => {
-  console.log(`Reverse proxy server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
