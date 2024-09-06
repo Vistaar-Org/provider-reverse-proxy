@@ -2,11 +2,19 @@
   "targets": [
     {
       "path": "upcar",
-      "url": "https://upcar.up.gov.in/en/page/advisory"
+      "url": "https://upcar.up.gov.in"
     },
     {
       "path": "ouat",
-      "url": "https://ouat.ac.in/quick-links/agro-advisory-services/"
+      "url": "https://ouat.ac.in/quick-links"
+    },
+    {
+      "path": "imd",
+      "url": "https://city.imd.gov.in/api/"      
+    },
+    {
+      "path": "test",
+      "url": "https://jsonplaceholder.typicode.com/"
     }
   ]
 }
