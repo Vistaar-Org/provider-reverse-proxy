@@ -41,6 +41,9 @@ config.targets.forEach(target => {
       // Remove other headers that might reveal the original IP
       proxyReq.removeHeader('x-real-ip');
       proxyReq.removeHeader('forwarded');
+      req.removeHeader('x-forwarded-for');
+      req.removeHeader('x-real-ip');
+      req.removeHeader('forwarded');
       
       console.log(`Proxying request to: ${target.url}${req.url}`);
     },
