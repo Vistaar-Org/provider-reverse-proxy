@@ -35,6 +35,13 @@ config.targets.forEach(target => {
       return newPath;
     },
     onProxyReq: (proxyReq, req, res) => {
+      // Remove the x-forwarded-for header to prevent passing the original client IP
+      proxyReq.removeHeader('x-forwarded-for');
+      
+      // Remove other headers that might reveal the original IP
+      proxyReq.removeHeader('x-real-ip');
+      proxyReq.removeHeader('forwarded');
+      
       console.log(`Proxying request to: ${target.url}${req.url}`);
     },
     onError: (err, req, res) => {
