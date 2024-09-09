@@ -8,7 +8,7 @@
     {
       "path": "ouat",
       "proxyMethod": "newRequest",
-      "url": "https://ouat.ac.in/quick-links"
+      "url": "https://ouat.ac.in"
     },
     {
       "path": "imd",
